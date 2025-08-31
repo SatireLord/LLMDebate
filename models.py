@@ -64,13 +64,23 @@ class Proponent(SimpleLLM):
         return "pro"
 
     def _stance_phrase(self, topic, context):
-        return f"we should support {topic}"
+        # Create more natural pro-stance phrases
+        topic_lower = topic.lower()
+        if topic_lower.endswith('?'):
+            # Handle questions naturally
+            topic_statement = topic[:-1]  # Remove the question mark
+            return f"the answer is yes - {topic_statement} is beneficial"
+        else:
+            return f"we should embrace {topic}"
 
     def _reasons(self, topic, context):
+        # Use "this approach" or "this idea" instead of repeating the full topic
+        # For questions, remove the question mark when used as a subject
+        topic_ref = "this approach" if len(topic) > 30 else topic.rstrip('?')
         candidates = [
-            f"{topic} would unlock new opportunities and drive innovation.",
-            f"{topic} addresses urgent challenges and creates long-term value.",
-            f"{topic} empowers people and expands our options."
+            f"{topic_ref} would unlock new opportunities and drive innovation.",
+            f"{topic_ref} addresses urgent challenges and creates long-term value.",
+            f"{topic_ref} empowers people and expands our options."
         ]
         reason = self._pick(candidates)
         modifier = self._pick([
@@ -95,13 +105,23 @@ class Opponent(SimpleLLM):
         return "con"
 
     def _stance_phrase(self, topic, context):
-        return f"we should be cautious about {topic}"
+        # Create more natural con-stance phrases
+        topic_lower = topic.lower()
+        if topic_lower.endswith('?'):
+            # Handle questions naturally
+            topic_statement = topic[:-1]  # Remove the question mark
+            return f"the answer is no - {topic_statement} poses significant risks"
+        else:
+            return f"we should be wary of {topic}"
 
     def _reasons(self, topic, context):
+        # Use "this approach" or "this idea" instead of repeating the full topic
+        # For questions, remove the question mark when used as a subject
+        topic_ref = "this approach" if len(topic) > 30 else topic.rstrip('?')
         candidates = [
-            f"{topic} carries risks that could be overlooked.",
-            f"{topic} might create unintended negative consequences.",
-            f"{topic} could be costly and favor the wrong actors."
+            f"{topic_ref} carries risks that could be overlooked.",
+            f"{topic_ref} might create unintended negative consequences.",
+            f"{topic_ref} could be costly and favor the wrong actors."
         ]
         reason = self._pick(candidates)
         modifier = self._pick([
@@ -129,9 +149,10 @@ class Moderator(SimpleLLM):
         # Moderator summarizes or reframes; avoid taking the same pro/con stance.
         if context:
             # Provide a short summary of the last message without endorsing.
-            summary = context[:140].rstrip('.')
-            return f"I'll summarize: {summary}"
-        return f"let's examine {topic} from several angles"
+            summary = context[:100].rstrip('.')
+            return f"to summarize the previous point: {summary}..."
+        topic_ref = "this issue" if len(topic) > 30 else topic.rstrip('?')
+        return f"let's examine {topic_ref} from multiple perspectives"
 
     def _reasons(self, topic, context):
         candidates = [

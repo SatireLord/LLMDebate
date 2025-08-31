@@ -21,6 +21,12 @@ def _models_by_stance(models, stance):
     return [ (i, m) for i, m in enumerate(models) if m.stance == stance ]
 
 def run_debate(topic, turns=6, seed=None):
+    # Validate topic input
+    if not topic or not topic.strip():
+        print("Error: Please provide a non-empty topic for the debate.")
+        return
+    
+    topic = topic.strip()
     models = make_models(seed=seed)
     rng = random.Random(seed)
 
