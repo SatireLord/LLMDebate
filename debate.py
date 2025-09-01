@@ -78,21 +78,33 @@ def _select_next_index(
     return rng.choice(candidates)[0]
 
 
-def run_debate(topic: str, turns: int = 6, seed: Optional[int] = None) -> None:
-    """Run a debate for ``topic`` between the default models.
+def run_debate(topic: str, turns: int = 6, seed: Optional[int] = None) -> str:
+    """Run a debate for ``topic`` between the default models and return text.
+
+    The original CLI printed results directly to ``stdout``.  Returning the
+    complete transcript instead makes the function reusable by other
+    interfaces, such as a GUI.  The caller can choose whether to print or store
+    the output.
 
     Args:
         topic: The question or statement being debated.
         turns: Total number of speaker turns to execute.
         seed: Optional random seed for deterministic behavior.
+
+    Returns:
+        A single string containing the full debate transcript.
     """
 
     models = make_models(seed=seed)
     rng = random.Random(seed)
 
-    print("="*80)
-    print(f"Debate topic: {topic}")
-    print("="*80)
+    # Collect output lines in a list; this avoids printing during generation
+    # and allows the caller to handle the text however they wish.
+    lines: List[str] = []
+
+    lines.append("=" * 80)
+    lines.append(f"Debate topic: {topic}")
+    lines.append("=" * 80)
 
     # Select the initial speaker at random. ``current_idx`` will keep track of
     # the speaker for each turn.
@@ -111,18 +123,21 @@ def run_debate(topic: str, turns: int = 6, seed: Optional[int] = None) -> None:
         out = model.generate(topic, context=last_output)
         last_output = out
 
-        print(f"\n--- Turn {t} ---")
-        print(f"\n{model.name} ({model.stance.value}):")
-        print(out)
+        lines.append(f"\n--- Turn {t} ---")
+        lines.append(f"\n{model.name} ({model.stance.value}):")
+        lines.append(out)
 
         if model.stance in (Stance.PRO, Stance.CON):
             last_non_neutral = model.stance
 
         current_idx = _select_next_index(models, current_idx, last_non_neutral, rng)
 
-    print("\n" + "="*80)
-    print("Debate ended.")
-    print("="*80)
+    lines.append("\n" + "=" * 80)
+    lines.append("Debate ended.")
+    lines.append("=" * 80)
+
+    # Joining with newlines recreates the readable transcript format used by the CLI
+    return "\n".join(lines)
 
 def main(argv):
     parser = argparse.ArgumentParser(description="Tiny LLM debate CLI with adversarial turns")
@@ -130,7 +145,9 @@ def main(argv):
     parser.add_argument("--turns", type=int, default=6, help="Number of speaker turns")
     parser.add_argument("--seed", type=int, default=None, help="Optional RNG seed for reproducible runs")
     args = parser.parse_args(argv)
-    run_debate(args.topic, turns=args.turns, seed=args.seed)
+    # ``run_debate`` now returns the full transcript so we print it here.
+    transcript = run_debate(args.topic, turns=args.turns, seed=args.seed)
+    print(transcript)
 
 if __name__ == "__main__":
     main(sys.argv[1:])
